@@ -17,10 +17,11 @@ in a way that makes using these libraries safe.
 
 Some things to keep in mind:
 
-  * There is no such thing as a naive time. ALL times involved a timezone.
+  * There is no such thing as a naive time. ALL times involve a timezone, and that timezone is UTC.
+  * The only time we deal with non-UTC timezones is when we parse or display a time.
   * We support math with dates, and math with times, but you can't do date math with times.
     For example: You can't add "1 day" to 2014-03-28 02:00:00, because that
-    doesn't actually make sense. Do you mean add 24 hours? That you can do. Did
+    doesn't actually make sense. Do you mean add 24 hours? Then do that. Did
     you mean you want 02:00:00 on 3/29, sure we can do that, but you have to
     decide.
 
