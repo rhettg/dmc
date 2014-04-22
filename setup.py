@@ -6,7 +6,7 @@ import sys
 from distutils.core import setup
 
 PACKAGES = ['dmc']
-REQUIRES = ['iso8601', 'pytz', 'humanize', 'dateutil']
+REQUIRES = ['iso8601', 'pytz', 'humanize', 'python-dateutil']
 
 
 def get_init_val(val, packages=PACKAGES):
