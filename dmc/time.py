@@ -9,10 +9,11 @@ This module contains the set of dmcs's exceptions
 """
 import datetime
 import time
+import math
 
 import pytz
 import humanize
-import dateutil
+import dateutil.tz
 import iso8601
 
 
@@ -24,7 +25,8 @@ class Time(object):
             day=1,
             hour=0,
             minute=0,
-            seconds=0,
+            second=0,
+            microsecond=0,
             tz=None,
             local=None):
         if tz and local:
@@ -34,19 +36,30 @@ class Time(object):
         if tz:
             tzinfo = pytz.timezone(tz)
         elif local:
-            tzinfo = dateutil.tzlocal()
+            tzinfo = dateutil.tz.tzlocal()
 
         dt = datetime.datetime(
-            year, month, day, hour, minute, seconds, tzinfo=tzinfo)
+            year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
         self._dt = dt.astimezone(pytz.UTC)
 
     @classmethod
     def from_timestamp(cls, ts):
-        return cls.from_datetime(*datetime.datetime.fromtimestamp(ts))
+        # fromtimestamp doesn't handle the float part of a timestamp, so if it
+        # exists, we'll need to patch it in.
+        ts_ms = int(round((ts - math.floor(ts)) * 100000))
+
+        dt = datetime.datetime.utcfromtimestamp(ts)
+        if ts_ms:
+            dt = dt.replace(microsecond=ts_ms)
+
+        return cls.from_datetime(dt)
 
     @classmethod
     def from_datetime(cls, dt):
-        return cls(*dt.timetuple())
+        if dt.tzinfo is not None:
+            dt = dt.astimezone(pytz.UTC)
+
+        return cls(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
 
     @classmethod
     def from_str(cls, s, format=None, tz=None, local=None):
@@ -54,7 +67,7 @@ class Time(object):
             raise ValueError("Either local or a specific timezone")
 
         if format is None:
-            dt = iso8601.parse_date(s)
+            dt = iso8601.parse_date(s, default_timezone=None)
         else:
             dt = datetime.strptime(s, format)
 
@@ -64,9 +77,12 @@ class Time(object):
         if tz:
             dt = pytz.timezone(tz).localize(dt)
         elif local:
-            dt = dateutil.tzlocal().localize(dt)
+            dt = dateutil.tz.tzlocal().localize(dt)
+        elif dt.tzinfo is None:
+            dt = pytz.UTC.localize(dt)
 
         dt = dt.astimezone(pytz.UTC)
+
         return cls.from_datetime(dt)
 
     @property
@@ -93,9 +109,21 @@ class Time(object):
     def second(self):
         return self._dt.second
 
-    def _localized_dt(tz=None, local=False):
+    @property
+    def microsecond(self):
+        return self._dt.microsecond
+
+    def __unicode__(self):
+        return self.to_str()
+
+    def __repr__(self):
+        return '<dmc.Time({}, {}, {}, {}, {}, {}, {}>'.format(
+            self.year, self.month, self.day, self.hour, self.minute,
+            self.second, self.microsecond)
+
+    def _localized_dt(self, tz=None, local=False):
         if local:
-            return self._dt.astimezone(dateutil.tzlocal())
+            return self._dt.astimezone(dateutil.tz.tzlocal())
         elif tz:
             return self._dt.astimezone(pytz.timezone(tz))
         else:
@@ -112,8 +140,8 @@ class Time(object):
     def to_datetime(self, tz=None, local=None):
         return self._localized_dt(tz=tz, local=local)
 
-    def to_human(self, tz=None, local=None):
-        return humanize.naturaltime(self._localized_dt(tz=tz, local=local))
+    def to_human(self):
+        return humanize.naturaltime(self._dt.replace(tzinfo=None))
 
 
 class TimeSpan(object):
