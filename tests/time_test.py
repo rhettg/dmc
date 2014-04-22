@@ -5,7 +5,9 @@ import pytz
 from dmc import (
     Time,
     TimeInterval,
-    TimeSpan)
+    TimeSpan,
+    TimeIterator,
+    TimeSpanIterator)
 
 
 class InitTimeTestCase(TestCase):
@@ -165,6 +167,26 @@ class ConvertTimeTestCase(TestCase):
         assert self.t.to_human()
 
 
+class ArithmeticTimeTest(TestCase):
+    def test_time_add(self):
+        t1 = Time(2014, 4, 18, 17, 50, 21)
+        ti = TimeInterval(2.22)
+
+        t2 = t1 + ti
+
+        assert_equal(t2.second, 23)
+        assert_equal(t2.microsecond, 220000)
+
+    def test_time_sub(self):
+        t1 = Time(2014, 4, 18, 17, 50, 21)
+        ti = TimeInterval(2.22)
+
+        t2 = t1 - ti
+
+        assert_equal(t2.second, 18)
+        assert_equal(t2.microsecond, 780000)
+
+
 class InitTimeIntervalTest(TestCase):
     def test_seconds(self):
         i = TimeInterval(21)
@@ -258,3 +280,92 @@ class ArithmeticTimeIntervalTest(TestCase):
 
         i4 = i2 - i1
         assert_equal(i4, -1)
+
+    def test_mul(self):
+        i1 = TimeInterval(2)
+
+        i2 = i1 * 3
+
+        assert_equal(int(i2), 6)
+
+    def test_div(self):
+        i1 = TimeInterval(5)
+
+        i2 = i1 / 2
+
+        assert_equal(float(i2), 2.5)
+
+    def test_div_micro(self):
+        i1 = TimeInterval(2, microseconds=22)
+
+        i2 = i1 / 2
+
+        assert_equal(i2.seconds, 1)
+        assert_equal(i2.microseconds, 11)
+
+    def test_abs(self):
+        i1 = TimeInterval(-2.22)
+
+        i2 = abs(i1)
+
+        assert_equal(float(i1), 2.22)
+
+    def test_abs(self):
+        i1 = TimeInterval(2.22)
+
+        i2 = abs(i1)
+
+        assert_equal(float(i1), 2.22)
+
+    def test_cmp(self):
+        assert_equal(TimeInterval(2.22), TimeInterval(2, microseconds=220000))
+
+        assert_gt(TimeInterval(2.22), TimeInterval(2.20))
+        assert_gt(TimeInterval(3.22), TimeInterval(2.5))
+
+        assert_lt(TimeInterval(0), TimeInterval(microseconds=1))
+        assert_lt(TimeInterval(-3), TimeInterval(2.5))
+
+
+class TimeSpanTest(TestCase):
+    def test_iter(self):
+        t1 = Time.now()
+        t2 = Time.now() + 30
+
+        ts = TimeSpan(t1, t2)
+
+        start_t, end_t = ts
+
+        assert_equal(start_t, t1)
+        assert_equal(end_t, t2)
+
+    def test_get(self):
+        t1 = Time.now()
+        t2 = Time.now() + 30
+
+        ts = TimeSpan(t1, t2)
+
+        assert_equal(ts[0], t1)
+        assert_equal(ts[1], t2)
+
+
+class TimeIteratorTest(TestCase):
+    def test(self):
+        start_t = Time.now()
+        end_t = start_t + 5*60
+
+        times = list(TimeIterator(TimeSpan(start_t, end_t), TimeInterval(60)))
+        assert_equal(len(times), 6)
+        assert_equal(times[0], start_t)
+        assert_equal(times[-1], end_t)
+
+
+class TimeSpanIteratorTest(TestCase):
+    def test(self):
+        start_t = Time.now()
+        end_t = start_t + 5*60
+
+        times = list(TimeSpanIterator(TimeSpan(start_t, end_t), TimeInterval(60)))
+        assert_equal(len(times), 5)
+        assert_equal(times[0].start, start_t)
+        assert_equal(times[-1].end, end_t)

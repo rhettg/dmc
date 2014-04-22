@@ -48,6 +48,10 @@ class Time(object):
         self._dt = dt.astimezone(pytz.UTC)
 
     @classmethod
+    def now(cls):
+        return cls.from_datetime(datetime.datetime.utcnow())
+
+    @classmethod
     def from_timestamp(cls, ts):
         # fromtimestamp doesn't handle the float part of a timestamp, so if it
         # exists, we'll need to patch it in.
@@ -64,7 +68,9 @@ class Time(object):
         if dt.tzinfo is not None:
             dt = dt.astimezone(pytz.UTC)
 
-        return cls(dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second, dt.microsecond)
+        return cls(
+            dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second,
+            dt.microsecond)
 
     @classmethod
     def from_str(cls, s, format=None, tz=None, local=None):
@@ -153,25 +159,80 @@ class Time(object):
     def to_human(self):
         return humanize.naturaltime(self._dt.replace(tzinfo=None))
 
+    def __add__(self, other):
+        if isinstance(other, TimeInterval):
+            return Time.from_datetime(
+                self._dt +
+                datetime.timedelta(
+                    seconds=other.seconds, microseconds=other.microseconds))
+        elif isinstance(other, (int, float)):
+            return self + TimeInterval(seconds=other)
+        else:
+            raise NotImplemented
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, TimeInterval):
+            return Time.from_datetime(
+                self._dt -
+                datetime.timedelta(
+                    seconds=other.seconds, microseconds=other.microseconds))
+        elif isinstance(other, (int, float)):
+            return self - TimeInterval(seconds=other)
+        else:
+            raise NotImplemented
+
+    def __cmp__(self, other):
+        if isinstance(other, Time):
+            return cmp(self.to_datetime(), other.to_datetime())
+        elif isinstance(other, datetime.datetime):
+            return cmp(self.to_datetime(), other)
+        else:
+            raise NotImplemented
+
 
 class TimeSpan(object):
-    def __init__(self, start_t, end_t):
-        self.start_t = start_t
-        self.end_t = end_t
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
 
     def __iter__(self):
-        yield self.start_t
-        yield self.end_t
+        yield self.start
+        yield self.end
+
+    def __getitem__(self, key):
+        if key == 0:
+            return self.start
+        elif key == 1:
+            return self.end
+        else:
+            raise KeyError
+
+    def __repr__(self):
+        return "<dmc.TimeSpan({}, {})>".format(self.start, self.end)
+
+    def __str__(self):
+        return "{} to {}".format(self.start, self.end)
 
 
 class TimeInterval(object):
-    def __init__(self, seconds=None, minutes=None, hours=None, microseconds=None):
+    def __init__(
+            self,
+            seconds=None,
+            minutes=None,
+            hours=None,
+            microseconds=None):
+
         self.microseconds = 0
         self.seconds = 0
 
         if seconds:
-            # For convinience, we'll accept a float for seconds and strip out the microseconds
-            self.microseconds += int(round((seconds - math.floor(seconds)) * MICROSECS_PER_SEC))
+            # For convinience, we'll accept a float for seconds and strip out
+            # the microseconds
+            self.microseconds += int(
+                round(
+                    (seconds - math.floor(seconds)) * MICROSECS_PER_SEC))
 
             self.seconds += int(math.floor(seconds))
 
@@ -219,6 +280,11 @@ class TimeInterval(object):
         elif isinstance(other, (int, float)):
             seconds = float(self) + other
             return TimeInterval(seconds=seconds)
+        elif isinstance(other, Time):
+            return Time.from_datetime(
+                other.to_datetime() +
+                datetime.timedelta(
+                    seconds=self.seconds, microseconds=self.microseconds))
         else:
             raise NotImplemented
 
@@ -243,6 +309,31 @@ class TimeInterval(object):
         else:
             raise NotImplemented
 
+    def __mul__(self, other):
+        if isinstance(other, (int, float)):
+            return TimeInterval(
+                seconds=self.seconds * other,
+                microseconds=self.microseconds * other)
+        else:
+            raise NotImplementedError
+
+    def __div__(self, other):
+        if isinstance(other, (int, float)):
+            return TimeInterval(
+                seconds=self.seconds / float(other),
+                microseconds=self.microseconds / float(other))
+        else:
+            raise NotImplementedError
+
+    def __abs__(self):
+        return TimeInterval(seconds=abs(self.seconds), microseconds=abs(self.microseconds))
+
+    def __cmp__(self, other):
+        if isinstance(other, TimeInterval):
+            return cmp((self.seconds, self.microseconds), (other.seconds, other.microseconds))
+
+        raise NotImplemented
+
 
 class TimeIterator(object):
     def __init__(self, span, interval):
@@ -250,8 +341,21 @@ class TimeIterator(object):
         self.interval = interval
 
     def __iter__(self):
-        next_t, end_t = span
+        next_t, end_t = self.span
+
+        while next_t <= end_t:
+            yield next_t
+            next_t = next_t + self.interval
+
+
+class TimeSpanIterator(object):
+    def __init__(self, span, interval):
+        self.span = span
+        self.interval = interval
+
+    def __iter__(self):
+        next_t, end_t = self.span
 
         while next_t < end_t:
-            yield next_t
+            yield TimeSpan(next_t, min(next_t + self.interval, end_t))
             next_t = next_t + self.interval
