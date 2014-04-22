@@ -2,10 +2,13 @@ from testify import *
 import datetime
 import pytz
 
-from dmc import Time
+from dmc import (
+    Time,
+    TimeInterval,
+    TimeSpan)
 
 
-class InitTestCase(TestCase):
+class InitTimeTestCase(TestCase):
     def test_direct(self):
         d = Time(2014, 4, 18, 17, 50, 21)
 
@@ -39,7 +42,7 @@ class InitTestCase(TestCase):
         assert_equal(d.second, 21)
 
     def test_timestamp(self):
-        ts = 1398125982.36391
+        ts = 1398125982.036391
 
         t = Time.from_timestamp(ts)
 
@@ -105,7 +108,7 @@ class InitTestCase(TestCase):
         assert_equal(t.second, 21)
 
 
-class ConvertTestCase(TestCase):
+class ConvertTimeTestCase(TestCase):
     @setup
     def create_time(self):
         self.t = Time(2014, 4, 18, 17, 50, 21, 36391)
@@ -122,6 +125,9 @@ class ConvertTestCase(TestCase):
 
     def test_str_format(self):
         assert_equal(self.t.to_str(format="%m/%d/%Y %H:%M"), "04/18/2014 17:50")
+
+    def test_timestamp(self):
+        assert_equal(self.t.to_timestamp(), 1397872221.036391)
 
     def test_datetime(self):
         dt = self.t.to_datetime()
@@ -158,3 +164,97 @@ class ConvertTestCase(TestCase):
         # Just make sure it doesn't crash
         assert self.t.to_human()
 
+
+class InitTimeIntervalTest(TestCase):
+    def test_seconds(self):
+        i = TimeInterval(21)
+
+        assert_equal(i.seconds, 21)
+        assert_equal(i.microseconds, 0)
+
+    def test_float_seconds(self):
+        i = TimeInterval(1.2)
+
+        assert_equal(i.seconds, 1)
+        assert_equal(i.microseconds, 200000)
+
+    def test_minutes(self):
+        i = TimeInterval(minutes=2)
+        assert_equal(i.seconds, 120)
+        assert_equal(i.microseconds, 0)
+
+    def test_hours(self):
+        i = TimeInterval(hours=1)
+        assert_equal(i.seconds, 3600)
+        assert_equal(i.microseconds, 0)
+
+    def test_microseconds(self):
+        i = TimeInterval(microseconds=10)
+        assert_equal(i.seconds, 0)
+        assert_equal(i.microseconds, 10)
+
+    def test_microsecond_overflow(self):
+        i = TimeInterval(seconds=1.9, microseconds=200000)
+        assert_equal(i.seconds, 2)
+        assert_equal(i.microseconds, 100000)
+
+
+class ConvertTimeIntervalTest(TestCase):
+    def test_int(self):
+        i = TimeInterval(4)
+        assert_equal(int(i), 4)
+
+    def test_int_round(self):
+        i = TimeInterval(4, microseconds=600000)
+        assert_equal(int(i), 5)
+
+    def test_float(self):
+        i = TimeInterval(4, microseconds=600000)
+        assert_equal(float(i), 4.6)
+
+    def test_str(self):
+        i = TimeInterval(hours=1, minutes=45, seconds=21, microseconds=600000)
+        assert_equal(str(i), "+01:45:21.6")
+
+
+class ArithmeticTimeIntervalTest(TestCase):
+    def test_add(self):
+        i1 = TimeInterval(1)
+        i2 = TimeInterval(1)
+
+        i3 = i1 + i2
+        assert_equal(i3.seconds, 2)
+
+    def test_add_int(self):
+        i1 = TimeInterval(1)
+        i2 = 1
+
+        i3 = i1 + i2
+        assert_equal(i3.seconds, 2)
+
+        i4 = i2 + i1
+        assert_equal(i4.seconds, 2)
+
+    def test_sub(self):
+        i1 = TimeInterval(2)
+        i2 = TimeInterval(1)
+
+        i3 = i1 - i2
+        assert_equal(i3.seconds, 1)
+
+    def test_sub_neg(self):
+        i1 = TimeInterval(1)
+        i2 = TimeInterval(2)
+
+        i3 = i1 - i2
+        assert_equal(i3.seconds, -1)
+
+    def test_sub_int(self):
+        i1 = TimeInterval(2)
+        i2 = 1
+
+        i3 = i1 - i2
+        assert_equal(i3.seconds, 1)
+
+        i4 = i2 - i1
+        assert_equal(i4, -1)

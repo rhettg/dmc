@@ -1,5 +1,5 @@
 pytz
-dateutils
+python-dateutil
 humanize
 iso8601
 ipython

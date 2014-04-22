@@ -18,5 +18,5 @@ __license__ = 'ISC'
 __copyright__ = 'Copyright 2014 Firstname Lastname'
 
 
-from .time import Time
+from .time import Time, TimeInterval, TimeSpan
 from .errors import Error

@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 # -*- coding: utf-8 -*-
 
 """
@@ -15,6 +17,9 @@ import pytz
 import humanize
 import dateutil.tz
 import iso8601
+
+
+MICROSECS_PER_SEC = 1000000
 
 
 class Time(object):
@@ -46,7 +51,7 @@ class Time(object):
     def from_timestamp(cls, ts):
         # fromtimestamp doesn't handle the float part of a timestamp, so if it
         # exists, we'll need to patch it in.
-        ts_ms = int(round((ts - math.floor(ts)) * 100000))
+        ts_ms = int(round((ts - math.floor(ts)) * MICROSECS_PER_SEC))
 
         dt = datetime.datetime.utcfromtimestamp(ts)
         if ts_ms:
@@ -140,6 +145,11 @@ class Time(object):
     def to_datetime(self, tz=None, local=None):
         return self._localized_dt(tz=tz, local=local)
 
+    def to_timestamp(self):
+        ts = time.mktime(self._dt.utctimetuple())
+        ts += (1.0 * self._dt.microsecond) / MICROSECS_PER_SEC
+        return ts
+
     def to_human(self):
         return humanize.naturaltime(self._dt.replace(tzinfo=None))
 
@@ -155,19 +165,83 @@ class TimeSpan(object):
 
 
 class TimeInterval(object):
-    def __init__(self, seconds=None, minutes=None, hours=None):
+    def __init__(self, seconds=None, minutes=None, hours=None, microseconds=None):
+        self.microseconds = 0
         self.seconds = 0
 
         if seconds:
-            self.seconds += seconds
+            # For convinience, we'll accept a float for seconds and strip out the microseconds
+            self.microseconds += int(round((seconds - math.floor(seconds)) * MICROSECS_PER_SEC))
+
+            self.seconds += int(math.floor(seconds))
+
         if minutes:
             self.seconds += minutes * 60
-        if hours:
-            self.seconds += minutes * 60 * 60
 
-    @classmethod
-    def from_date(self, d):
-        raise NotImplementedError
+        if hours:
+            self.seconds += hours * 60 * 60
+
+        if microseconds:
+            self.microseconds += microseconds
+
+            if self.microseconds >= MICROSECS_PER_SEC:
+                self.seconds += self.microseconds // MICROSECS_PER_SEC
+                self.microseconds = self.microseconds % MICROSECS_PER_SEC
+
+    def __int__(self):
+        if self.microseconds:
+            return int(round(float(self)))
+        else:
+            assert type(self.seconds), int
+            return self.seconds
+
+    def __float__(self):
+        return self.seconds + (1.0 * self.microseconds / MICROSECS_PER_SEC)
+
+    def __str__(self):
+        seconds = self.seconds
+
+        hours = seconds // (60 * 60)
+        seconds -= hours * 60 * 60
+
+        minutes = seconds // 60
+        seconds -= minutes * 60
+
+        seconds += 1.0 * self.microseconds / MICROSECS_PER_SEC
+
+        return "{:=+03d}:{:02d}:{:04.1f}".format(hours, minutes, seconds)
+
+    def __add__(self, other):
+        if isinstance(other, type(self)):
+            seconds = other.seconds + self.seconds
+            microseconds = other.microseconds + self.microseconds
+            return TimeInterval(seconds=seconds, microseconds=microseconds)
+        elif isinstance(other, (int, float)):
+            seconds = float(self) + other
+            return TimeInterval(seconds=seconds)
+        else:
+            raise NotImplemented
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        if isinstance(other, type(self)):
+            seconds = self.seconds - other.seconds
+            microseconds = self.microseconds - other.microseconds
+            return TimeInterval(seconds=seconds, microseconds=microseconds)
+        elif isinstance(other, (int, float)):
+            seconds = float(self) - other
+            return TimeInterval(seconds=seconds)
+        else:
+            raise NotImplemented
+
+    def __rsub__(self, other):
+        if isinstance(other, type(self)):
+            raise NotImplemented
+        elif isinstance(other, (int, float)):
+            return other - float(self)
+        else:
+            raise NotImplemented
 
 
 class TimeIterator(object):
