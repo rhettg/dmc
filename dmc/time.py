@@ -15,15 +15,19 @@ import math
 import sys
 
 import pytz
-import humanize
 import dateutil.tz
 import iso8601
+
+from . import human
+from . testing import get_mock_now
 
 
 MICROSECS_PER_SEC = 1000000
 
 
 class Time(object):
+    __slots__ = ['_dt']
+
     def __init__(
             self,
             year=1970,
@@ -50,7 +54,7 @@ class Time(object):
 
     @classmethod
     def now(cls):
-        return cls.from_datetime(datetime.datetime.utcnow())
+        return get_mock_now() or cls.from_datetime(datetime.datetime.utcnow())
 
     @classmethod
     def from_timestamp(cls, ts):
@@ -158,7 +162,7 @@ class Time(object):
         return ts
 
     def to_human(self):
-        return humanize.naturaltime(self._dt.replace(tzinfo=None))
+        return human.naturaltime(self._dt.replace(tzinfo=None))
 
     def __add__(self, other):
         if isinstance(other, TimeInterval):
@@ -194,6 +198,8 @@ class Time(object):
 
 
 class TimeSpan(object):
+    __slots__ = ['start', 'end']
+
     def __init__(self, start, end):
         self.start = start
         self.end = end
@@ -218,6 +224,8 @@ class TimeSpan(object):
 
 
 class TimeInterval(object):
+    __slots__ = ['seconds', 'microseconds']
+
     def __init__(
             self,
             seconds=None,
@@ -252,8 +260,8 @@ class TimeInterval(object):
 
     @classmethod
     def from_timedelta(self, td):
-        # Timedelta's store as (days, seconds, microseconds).
-        # TimeInterval deals in just seconds and microseconds. Do we lose anything here?
+        # Timedelta's store as (days, seconds, microseconds).  TimeInterval
+        # deals in just seconds and microseconds. Do we lose anything here?
         # Obviously we have the same resolution, so the only question is if
         # sys.maxint seconds isn't big enough for us. Unlikely on 64bit.
         if sys.maxint / (60*60*24) < td.days:
@@ -341,16 +349,21 @@ class TimeInterval(object):
             raise NotImplementedError
 
     def __abs__(self):
-        return TimeInterval(seconds=abs(self.seconds), microseconds=abs(self.microseconds))
+        return TimeInterval(
+            seconds=abs(self.seconds), microseconds=abs(self.microseconds))
 
     def __cmp__(self, other):
         if isinstance(other, TimeInterval):
-            return cmp((self.seconds, self.microseconds), (other.seconds, other.microseconds))
+            return cmp(
+                (self.seconds, self.microseconds),
+                (other.seconds, other.microseconds))
 
         raise NotImplemented
 
 
 class TimeIterator(object):
+    __slots__ = ['span', 'interval']
+
     def __init__(self, span, interval):
         self.span = span
         self.interval = interval
@@ -364,6 +377,8 @@ class TimeIterator(object):
 
 
 class TimeSpanIterator(object):
+    __slots__ = ['span', 'interval']
+
     def __init__(self, span, interval):
         self.span = span
         self.interval = interval

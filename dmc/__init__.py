@@ -18,5 +18,7 @@ __license__ = 'ISC'
 __copyright__ = 'Copyright 2014 Firstname Lastname'
 
 
+from .testing import MockNow, set_mock_now, get_mock_now, clear_mock_now
 from .time import Time, TimeInterval, TimeSpan, TimeIterator, TimeSpanIterator
+from .date import Date, DateInterval, DateSpan, DateIterator, DateSpanIterator
 from .errors import Error
