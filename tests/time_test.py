@@ -220,6 +220,15 @@ class InitTimeIntervalTest(TestCase):
         assert_equal(i.seconds, 2)
         assert_equal(i.microseconds, 100000)
 
+    def test_timedelta(self):
+        td = datetime.timedelta(days=1, seconds=10, microseconds=1000)
+
+        i = TimeInterval.from_timedelta(td)
+
+        assert_equal(i.seconds, round(td.total_seconds()))
+        assert_equal(i.microseconds, td.microseconds)
+        assert_equal(float(i), td.total_seconds())
+
 
 class ConvertTimeIntervalTest(TestCase):
     def test_int(self):

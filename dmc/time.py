@@ -12,6 +12,7 @@ This module contains the set of dmcs's exceptions
 import datetime
 import time
 import math
+import sys
 
 import pytz
 import humanize
@@ -248,6 +249,20 @@ class TimeInterval(object):
             if self.microseconds >= MICROSECS_PER_SEC:
                 self.seconds += self.microseconds // MICROSECS_PER_SEC
                 self.microseconds = self.microseconds % MICROSECS_PER_SEC
+
+    @classmethod
+    def from_timedelta(self, td):
+        # Timedelta's store as (days, seconds, microseconds).
+        # TimeInterval deals in just seconds and microseconds. Do we lose anything here?
+        # Obviously we have the same resolution, so the only question is if
+        # sys.maxint seconds isn't big enough for us. Unlikely on 64bit.
+        if sys.maxint / (60*60*24) < td.days:
+            raise ValueError("Platform maxint isn't large enough")
+
+        seconds = (td.days * 60*60*24) + td.seconds
+        microseconds = td.microseconds
+
+        return TimeInterval(seconds=seconds, microseconds=microseconds)
 
     def __int__(self):
         if self.microseconds:
