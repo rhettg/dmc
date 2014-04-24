@@ -50,6 +50,13 @@ class Time(object):
 
         dt = datetime.datetime(
             year, month, day, hour, minute, second, microsecond, tzinfo=tzinfo)
+
+        if tzinfo:
+            try:
+                dt = tzinfo.normalize(dt)
+            except AttributeError:
+                pass
+
         self._dt = dt.astimezone(pytz.UTC)
 
     @classmethod
@@ -91,9 +98,10 @@ class Time(object):
             raise ValueError("Timezone was in string")
 
         if tz:
-            dt = pytz.timezone(tz).localize(dt)
+            tzinfo = pytz.timezone(tz)
+            dt = tzinfo.localize(dt, is_dst=None)
         elif local:
-            dt = dateutil.tz.tzlocal().localize(dt)
+            dt = dt.replace(tzinfo=dateutil.tz.tzlocal())
         elif dt.tzinfo is None:
             dt = pytz.UTC.localize(dt)
 
@@ -141,7 +149,8 @@ class Time(object):
         if local:
             return self._dt.astimezone(dateutil.tz.tzlocal())
         elif tz:
-            return self._dt.astimezone(pytz.timezone(tz))
+            tzinfo = pytz.timezone(tz)
+            return tzinfo.normalize(self._dt.astimezone(tzinfo))
         else:
             return self._dt
 

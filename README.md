@@ -108,7 +108,7 @@ to be able to mock out the current time or date. `dmc` makes this easy:
 
 Or, with a friendly context manager:
 
-    >> with dmc.mock_time(...):
+    >> with dmc.MockTime(...):
     .... pass
 
 
@@ -122,6 +122,10 @@ across mx.Datetime. Mind blown. Such a better world. (datetime was added in
 python 2.3, in 2003, over 10 years ago). You'd think that dealing with dates
 and times would be solved problem. But twice a year I wake up to the collective
 "oh shit" as developers remember daylight savings time.
+
+There is also [PEP-431](http://legacy.python.org/dev/peps/pep-0431/) that
+attempts to fix datetime timezones. Or is it just patching over how insane it
+is to handle timezones in this way?
 
 There are also a lot of glaring holes in the API datetime provides us. We fill
 those holes with a cornocopia of several other modules.  Basically, if you're
@@ -211,7 +215,7 @@ What if I wanted to enumerate time ranges for a day in localtime, and then run
 some queries that are in UTC.
 
     >> import pytz
-    >> tz = pytz.timezone('Americas/Los_Angeles')
+    >> tz = pytz.timezone('US/Pacific')
     >> start_dt = datetime.datetime(2014, 3, 9, 0, 0, 0, tzinfo=tz)
     >> end_dt = start_dt + datetime.timedelta(days=1)
     >> d = start_dt
@@ -225,7 +229,7 @@ How many errors can you spot?
 Oh, my favorite:
 
     >> import pytz
-    >> tz = pytz.timezone('America/Los_Angeles')
+    >> tz = pytz.timezone('US/Pacific')
     >> start_dt = datetime.datetime(2014, 3, 6, 0, 0, 0, tzinfo=tz)
 
     >> d = start_dt
@@ -246,5 +250,11 @@ switcheroo ways around this:
 
     >> d = start_dt
     >> for _ in range(7):
-    ...   print d.astimezone(pytz.UTC).astimezone(pytz.timezone('America/Los_Angeles'))
-    ...   d += datetime.timedelta(days=1
+    ...   print d.astimezone(pytz.UTC).astimezone(pytz.timezone('US/Pacific'))
+    ...   d += datetime.timedelta(days=1)
+
+This is common enough that pytz actually provides a function for it:
+
+
+    >> print pytz.timezone('US/Pacific').normalize(d)
+

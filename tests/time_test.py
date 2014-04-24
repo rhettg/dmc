@@ -22,7 +22,7 @@ class InitTimeTestCase(TestCase):
         assert_equal(d.second, 21)
 
     def test_direct_tz(self):
-        d = Time(2014, 4, 18, 17, 50, 21, tz='America/Los_Angeles')
+        d = Time(2014, 4, 18, 17, 50, 21, tz='US/Pacific')
 
         assert_equal(d.year, 2014)
         assert_equal(d.month, 4)
@@ -68,7 +68,7 @@ class InitTimeTestCase(TestCase):
 
     def test_datetime_tz(self):
         dt = datetime.datetime(2014, 4, 18, 17, 50, 21)
-        dt = pytz.timezone('America/Los_Angeles').localize(dt)
+        dt = pytz.timezone('US/Pacific').localize(dt)
 
         t = Time.from_datetime(dt)
 
@@ -100,7 +100,7 @@ class InitTimeTestCase(TestCase):
         assert_equal(t.second, 21)
 
     def test_str_specify_tz(self):
-        t = Time.from_str("2014-04-18T17:50:21.036391", tz='America/Los_Angeles')
+        t = Time.from_str("2014-04-18T17:50:21.036391", tz='US/Pacific')
 
         assert_equal(t.year, 2014)
         assert_equal(t.month, 4)
@@ -119,7 +119,7 @@ class ConvertTimeTestCase(TestCase):
         assert_equal(self.t.to_str(), "2014-04-18T17:50:21.036391+00:00")
 
     def test_str_tz(self):
-        assert_equal(self.t.to_str(tz='America/Los_Angeles'), "2014-04-18T10:50:21.036391-07:00")
+        assert_equal(self.t.to_str(tz='US/Pacific'), "2014-04-18T10:50:21.036391-07:00")
 
     def test_str_local(self):
         # We don't really konw
@@ -143,7 +143,7 @@ class ConvertTimeTestCase(TestCase):
         assert_equal(dt.tzinfo, pytz.UTC)
 
     def test_datetime_tz(self):
-        dt = self.t.to_datetime(tz='America/Los_Angeles')
+        dt = self.t.to_datetime(tz='US/Pacific')
 
         assert_equal(dt.year, 2014)
         assert_equal(dt.month, 4)
@@ -151,7 +151,7 @@ class ConvertTimeTestCase(TestCase):
         assert_equal(dt.hour, 10)
         assert_equal(dt.minute, 50)
         assert_equal(dt.second, 21)
-        assert_equal(str(dt.tzinfo), 'America/Los_Angeles')
+        assert_equal(str(dt.tzinfo), 'US/Pacific')
 
     def test_datetime_local(self):
         dt = self.t.to_datetime(local=True)

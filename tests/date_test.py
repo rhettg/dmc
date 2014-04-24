@@ -31,4 +31,4 @@ class ConvertDateTestCase(TestCase):
         d = Date(2014, 4, 18)
         with MockNow(t):
             assert_equal(d.to_human(), 'today')
-            assert_equal(d.to_human(tz='America/Los_Angeles'), 'tomorrow')
+            assert_equal(d.to_human(tz='US/Pacific'), 'tomorrow')
