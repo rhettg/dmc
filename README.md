@@ -258,3 +258,14 @@ This is common enough that pytz actually provides a function for it:
 
     >> print pytz.timezone('US/Pacific').normalize(d)
 
+
+Project Status
+----------------
+
+*Experimental*. Still estabilishing interfaces.
+
+Basic `Date` and `Time` formatting and parsing are written and tested.
+
+`Intervals` and `Span` are being actively developed.
+
+DMC still requires some real world use before APIs are firmly set.
